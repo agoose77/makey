@@ -8,5 +8,10 @@ setup(
     license='MIT',
     author='Angus Hollands',
     author_email='goosey15@gmail.com',
-    description='Make libraries from url/tarball with CMAKE, and install using checkinstall.'
+    description='Make libraries from url/tarball with CMAKE, and install using checkinstall.',
+    entry_points={
+        'console_scripts': [
+            'makey = make:main'
+        ]
+    }
 )
