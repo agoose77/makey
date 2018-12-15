@@ -16,7 +16,7 @@ def main():
     # Parse file from URL or local tarball
     old_files = set(local.cwd)
     if urlparse(args.url_or_path).scheme in HTTP_SCHEMES:
-        (cmd.wget["-qO-", args.url] | cmd.tar["xvz"])()
+        (cmd.wget["-qO-", args.url_or_path] | cmd.tar["xvz"])()
     else:
         cmd.tar("-xvf", args.url_or_path)
     project_path, = set(local.cwd) - old_files
