@@ -11,7 +11,7 @@ setup(
     description='Make libraries from url/tarball with CMAKE, and install using checkinstall.',
     entry_points={
         'console_scripts': [
-            'makey = make:main'
+            'makey = makey:main'
         ]
     }
 )
