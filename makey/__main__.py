@@ -2,7 +2,7 @@ from plumbum import local, cmd
 import plumbum
 import argparse
 import re
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 
 CMAKE_PROJECT_NAME_PATTERN = re.compile(r"project\((.*)\)")
 HTTP_SCHEMES = {"http", "https"}
@@ -10,14 +10,20 @@ HTTP_SCHEMES = {"http", "https"}
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("url_or_path", type=str)
+    parser.add_argument("url_or_path", type=str, description="URL/local path of tar file, or url of git repositry prefixed with git+.")
     args, unknown_args = parser.parse_known_args()
 
     # Parse file from URL or local tarball
     old_files = set(local.cwd)
-    scheme = urlparse(args.url_or_path).scheme
+    parsed_url = urlparse(args.url_or_path)
 
-    if scheme in HTTP_SCHEMES:
+    if parsed_url.scheme.startswith("git+"):
+        print()
+        original_scheme = parsed_url.scheme[len("git+"):]
+        repo_url = urlunparse((original_scheme, parsed_url.netloc, parsed_url.path, parsed_url.params, parsed_url.query,
+                               parsed_url.fragment))
+        (cmd.git("clone", repo_url))
+    elif parsed_url.scheme in HTTP_SCHEMES:
         (cmd.wget["-qO-", args.url_or_path] | cmd.tar["xvz"])()
     else:
         cmd.tar("-xvf", args.url_or_path)
