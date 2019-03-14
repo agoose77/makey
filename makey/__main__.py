@@ -10,7 +10,7 @@ HTTP_SCHEMES = {"http", "https"}
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("url_or_path", type=str, description="URL/local path of tar file, or url of git repositry prefixed with git+.")
+    parser.add_argument("url_or_path", type=str, help="URL/local path of tar file, or url of git repositry prefixed with git+.")
     args, unknown_args = parser.parse_known_args()
 
     # Parse file from URL or local tarball
