@@ -4,7 +4,7 @@ import argparse
 import re
 from urllib.parse import urlparse, urlunparse
 
-CMAKE_PROJECT_NAME_PATTERN = re.compile(r"project\((.*)\)")
+CMAKE_PROJECT_NAME_PATTERN = re.compile(r"project\((.*)\)", re.IGNORECASE)
 HTTP_SCHEMES = {"http", "https"}
 
 
