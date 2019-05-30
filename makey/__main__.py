@@ -19,7 +19,6 @@ def main():
     parsed_url = urlparse(args.url_or_path)
 
     if parsed_url.scheme.startswith("git+"):
-        print()
         original_scheme = parsed_url.scheme[len("git+"):]
         repo_url = urlunparse((original_scheme, parsed_url.netloc, parsed_url.path, parsed_url.params, parsed_url.query,
                                parsed_url.fragment))
