@@ -11,6 +11,7 @@ HTTP_SCHEMES = {"http", "https"}
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("url_or_path", type=str, help="URL/local path of tar file, or url of git repositry prefixed with git+.")
+    parser.add_argument("-j", "--jobs", type="str", help="Number of jobs for make command")
     args, unknown_args = parser.parse_known_args()
 
     # Parse file from URL or local tarball
@@ -46,6 +47,7 @@ def main():
     # Make package with CMAKE
     with local.cwd(build_path):
         cmd.cmake(source_path, *unknown_args)
+        cmd.make("install", f"-j{args.jobs}")
         cmd.sudo[cmd.checkinstall, "--pkgname", library_name] & plumbum.FG
 
 
