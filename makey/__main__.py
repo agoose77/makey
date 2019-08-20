@@ -89,6 +89,56 @@ def run_command(command, verbose: bool):
         return command()
 
 
+def makey(
+    url_or_path: str,
+    jobs: int = 1,
+    version: str = None,
+    verbose: bool = False,
+    cmake_flags: list = None,
+):
+    cmake_flags = cmake_flags or []
+
+    # Parse file from URL or local tarball
+    project_path = load_source(url_or_path)
+
+    # Place source inside the project directory
+    source_path = project_path.move(local.cwd / f"{project_path.name}_source")
+    source_path = source_path.move(project_path / "source")
+    build_path = project_path / "build"
+    build_path.mkdir()
+
+    # Make package with CMAKE
+    with local.cwd(build_path):
+        print("Running CMake")
+        run_command(cmd.cmake[(source_path, *cmake_flags)], verbose)
+
+        print("Running Make")
+        run_command(cmd.make[f"-j{jobs}"], verbose)
+
+        # Try CPack, otherwise use checkinstall
+        if (local.cwd / "CPackConfig.cmake").exists():
+            print("Installing with CPack")
+            install_with_cpack(verbose=verbose)
+        else:
+            print("Installing with checkinstall")
+            # Find library name
+            library_name = load_cmake_project_name(
+                (source_path / "CMakeLists.txt").read("utf8")
+            )
+            if version is None:
+                with local.cwd(source_path):
+                    try:
+                        version = find_version_from_git()
+                        print(f"Using version {version} from Git")
+                    except ProcessExecutionError:
+                        version = input(
+                            "Could not load version from Git, please enter version string (major.minor.patch):"
+                        )
+
+            install_with_checkinstall(library_name, version, verbose=verbose)
+    print("Done!")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -103,47 +153,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true")
     args, unknown_args = parser.parse_known_args()
 
-    # Parse file from URL or local tarball
-    project_path = load_source(args.url_or_path)
-
-    # Place source inside the project directory
-    source_path = project_path.move(local.cwd / f"{project_path.name}_source")
-    source_path = source_path.move(project_path / "source")
-    build_path = project_path / "build"
-    build_path.mkdir()
-
-    # Make package with CMAKE
-    with local.cwd(build_path):
-        print("Running CMake")
-        run_command(cmd.cmake[(source_path, *unknown_args)], args.verbose)
-
-        print("Running Make")
-        run_command(cmd.make[f"-j{args.jobs}"], args.verbose)
-
-        # Try CPack, otherwise use checkinstall
-        if (local.cwd / "CPackConfig.cmake").exists():
-            print("Installing with CPack")
-            install_with_cpack(verbose=args.verbose)
-        else:
-            print("Installing with checkinstall")
-            # Find library name
-            library_name = load_cmake_project_name(
-                (source_path / "CMakeLists.txt").read("utf8")
-            )
-            if args.version is None:
-                with local.cwd(source_path):
-                    try:
-                        version = find_version_from_git()
-                        print(f"Using version {version} from Git")
-                    except ProcessExecutionError:
-                        version = input(
-                            "Could not load version from Git, please enter version string (major.minor.patch):"
-                        )
-            else:
-                version = args.version
-
-            install_with_checkinstall(library_name, version, verbose=args.verbose)
-    print("Done!")
+    makey(args.url_or_path, args.jobs, args.version, args.verbose, unknown_args)
 
 
 if __name__ == "__main__":
