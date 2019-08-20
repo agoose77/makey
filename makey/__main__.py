@@ -26,7 +26,7 @@ def load_source(url_or_path: str) -> plumbum.Path:
     with track_new_files(local.cwd) as new_files:
         # Load data
         if parsed_url.scheme.startswith("git+"):
-            original_scheme = parsed_url.scheme[len("git+") :]
+            original_scheme = parsed_url.scheme[len("git+"):]
             repo_url = urlunparse(
                 (
                     original_scheme,
@@ -34,10 +34,14 @@ def load_source(url_or_path: str) -> plumbum.Path:
                     parsed_url.path,
                     parsed_url.params,
                     parsed_url.query,
-                    parsed_url.fragment,
+                    '',
                 )
             )
-            (cmd.git("clone", repo_url))
+            args = ["clone", repo_url, "--depth=1"]
+            if parsed_url.fragment:
+                args.append(f"--branch={parsed_url.fragment}")
+            cmd.git(*args)
+
         elif parsed_url.scheme in HTTP_SCHEMES:
             (cmd.wget["-qO-", url_or_path] | cmd.tar["xvz"])()
         else:
