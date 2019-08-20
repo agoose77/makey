@@ -95,6 +95,7 @@ def makey(
     version: str = None,
     verbose: bool = False,
     cmake_flags: list = None,
+    force_checkinstall: bool = False,
 ):
     cmake_flags = cmake_flags or []
 
@@ -116,7 +117,7 @@ def makey(
         run_command(cmd.make[f"-j{jobs}"], verbose)
 
         # Try CPack, otherwise use checkinstall
-        if (local.cwd / "CPackConfig.cmake").exists():
+        if (local.cwd / "CPackConfig.cmake").exists() and not force_checkinstall:
             print("Installing with CPack")
             install_with_cpack(verbose=verbose)
         else:
@@ -150,10 +151,13 @@ def main():
         "-j", "--jobs", type=str, help="Number of jobs for make command", default=1
     )
     parser.add_argument("--version", type=str, help="Project version")
+    parser.add_argument(
+        "--checkinstall", action="store_true", help="Force checkinstall"
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args, unknown_args = parser.parse_known_args()
 
-    makey(args.url_or_path, args.jobs, args.version, args.verbose, unknown_args)
+    makey(args.url_or_path, args.jobs, args.version, args.verbose, unknown_args, force_checkinstall=args.checkinstall)
 
 
 if __name__ == "__main__":
