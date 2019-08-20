@@ -8,7 +8,7 @@ from contextlib import contextmanager
 
 CMAKE_PROJECT_NAME_PATTERN = re.compile(r"project\((.*)\)", re.IGNORECASE)
 PACKAGE_NAME_PATTERN = re.compile(r"package: (.*?) generated")
-VERSION_STRING_PATTERN = re.compile(r"v(\d+\.\d+\.\d+)")
+VERSION_STRING_PATTERN = re.compile(r"v(\d+[\.-]\d+[\.-]\d+)")
 HTTP_SCHEMES = {"http", "https"}
 
 
@@ -53,7 +53,8 @@ def load_source(url_or_path: str) -> plumbum.Path:
 
 def find_version_from_git() -> str:
     version_string = cmd.git("describe", "--tags", "--abbrev=0")
-    return VERSION_STRING_PATTERN.search(version_string).group(1).strip()
+    major, minor, patch = VERSION_STRING_PATTERN.search(version_string).groups()
+    return f"{major}.{minor}.{patch}"
 
 
 def load_cmake_project_name(cmakelists_contents: str) -> str:
