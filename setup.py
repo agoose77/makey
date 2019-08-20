@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='makey',
-    version='0.0.3',
+    version='0.0.4',
     packages=['makey'],
     url='https://github.com/agoose77/makey',
     license='MIT',
