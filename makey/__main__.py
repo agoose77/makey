@@ -136,8 +136,8 @@ def main():
                         version = find_version_from_git()
                         print(f"Using version {version} from Git")
                     except ProcessExecutionError:
-                        raise ValueError(
-                            "Could not load version from Git, need to pass version flag."
+                        version = input(
+                            "Could not load version from Git, please enter version string (major.minor.patch):"
                         )
             else:
                 version = args.version
