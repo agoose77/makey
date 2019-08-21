@@ -116,8 +116,7 @@ def apply_patch(patch: str):
     else:
         contents = Path(patch).read_text()
 
-    print("Applying patch")
-    cmd.git["apply", "-"] << contents
+    (cmd.git["apply", "-"] << contents)()
 
 
 def makey(
@@ -144,6 +143,7 @@ def makey(
 
     # Support patching files
     if patch is not None:
+        print("Applying patch")
         with local.cwd(source_path):
             apply_patch(patch)
 

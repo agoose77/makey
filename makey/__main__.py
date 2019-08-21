@@ -20,11 +20,11 @@ def main(args=None):
     parser.add_argument(
         "-c", "--force_checkinstall", action="store_true", help="Force checkinstall."
     )
-    parser.add_argument("-p", "--patch", help="Apply patch to source.")
+    parser.add_argument("-p", "--patch", help="Apply patch to source (URL or filepath).")
     parser.add_argument("-V", "--verbose", action="store_true", help="Turn on verbose mode.")
     parser.add_argument("-b", "--build_only", action="store_true", help="Only build package.")
     parser.add_argument("--cflag", action="append", nargs="+", help="CMake flags pass-through.", default=[])
-    parser.add_argument("-D", "--copt", action="append", nargs="+", help="CMake options pass-through.", default=[])
+    parser.add_argument("--copt", action="append", nargs="+", help="CMake options pass-through.", default=[])
     parser.add_argument("--dflag", action="append", nargs="+", help="dpkg flags pass-through.", default=[])
     parser.add_argument("--dopt", action="append", nargs="+", help="dpkg options pass-through.", default=[])
     args = parser.parse_args(args)
