@@ -2,6 +2,10 @@ from argparse import ArgumentParser
 from . import makey
 
 
+def make_arguments(opts, flags):
+    return [f"-{o}" for o in opts] + [f"--{f}" for f in flags]
+
+
 def main(args=None):
     parser = ArgumentParser()
     parser.add_argument(
@@ -18,14 +22,19 @@ def main(args=None):
     )
     parser.add_argument("-V", "--verbose", action="store_true", help="Turn on verbose mode.")
     parser.add_argument("-b", "--build_only", action="store_true", help="Only build package.")
-    args, unknown_args = parser.parse_known_args(args)
+    parser.add_argument("--cflag", action="append", nargs="+", help="CMake flags pass-through.", default=[])
+    parser.add_argument("-D", "--copt", action="append", nargs="+", help="CMake options pass-through.", default=[])
+    parser.add_argument("--dflag", action="append", nargs="+", help="dpkg flags pass-through.", default=[])
+    parser.add_argument("--dopt", action="append", nargs="+", help="dpkg options pass-through.", default=[])
+    args = parser.parse_args(args)
 
     makey(
         args.url_or_path,
         args.jobs,
         args.version,
         args.verbose,
-        unknown_args,
+        cmake_args=make_arguments(sum(args.copt, []), sum(args.cflag, [])),
+        dpkg_args=make_arguments(sum(args.dopt, []), sum(args.dflag, [])),
         force_checkinstall=args.force_checkinstall,
         install_package=not args.build_only,
     )

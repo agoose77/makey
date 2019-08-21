@@ -48,8 +48,13 @@ def load_source(url_or_path: str) -> plumbum.Path:
 
         elif parsed_url.scheme in HTTP_SCHEMES:
             (cmd.wget["-qO-", url_or_path] | cmd.tar["xvz"])()
+
         else:
-            cmd.tar("-xvf", url_or_path)
+            url_path = local.cwd / url_or_path
+            if url_path.is_dir():
+                cmd.cp("-r", url_path, local.cwd)
+            else:
+                cmd.tar("-xvf", url_or_path)
 
     project_path, = new_files
     return project_path
@@ -71,8 +76,7 @@ def load_cmake_project_name(cmakelists_contents: str) -> str:
 def build_with_cpack(verbose: bool = False) -> plumbum.LocalPath:
     author = getpass.getuser()
     result = run_command(
-        cmd.cpack["-G", "DEB", "-D", f'CPACK_PACKAGE_CONTACT="{author}"'],
-        verbose,
+        cmd.cpack["-G", "DEB", "-D", f'CPACK_PACKAGE_CONTACT="{author}"'], verbose
     )
     return local.cwd / PACKAGE_NAME_PATTERN.search(result).group(1).strip()
 
@@ -107,26 +111,24 @@ def makey(
     jobs: int = 1,
     version: str = None,
     verbose: bool = False,
-    cmake_flags: list = None,
+    cmake_args: list = None,
+    dpkg_args: list = None,
     force_checkinstall: bool = False,
     install_package: bool = True,
 ):
-    cmake_flags = cmake_flags or []
-
     # Parse file from URL or local tarball
     print(f"Loading source from {url_or_path}")
     project_path = load_source(url_or_path)
 
     # Place source inside the project directory
-    source_path = project_path.move(local.cwd / f"{project_path.name}_source")
-    source_path = source_path.move(project_path / "source")
+    source_path = project_path.move(local.cwd / f"{project_path.name}_source").move(project_path / "source")
     build_path = project_path / "build"
     build_path.mkdir()
 
     # Make package with CMAKE
     with local.cwd(build_path):
         print("Running CMake")
-        run_command(cmd.cmake[(source_path, *cmake_flags)], verbose)
+        run_command(cmd.cmake[(source_path, *cmake_args)], verbose)
 
         print("Running Make")
         run_command(cmd.make[f"-j{jobs}"], verbose)
@@ -157,6 +159,6 @@ def makey(
 
         if install_package:
             print("Installing deb file ...")
-            run_command(cmd.sudo[cmd.apt["install", deb_path]], verbose)
+            run_command(cmd.sudo[cmd.dpkg[("-i", deb_path, *dpkg_args)]], verbose)
 
     return deb_path
