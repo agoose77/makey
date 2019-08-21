@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from . import makey
 
 
-def main():
+def main(args=None):
     parser = ArgumentParser()
     parser.add_argument(
         "url_or_path",
@@ -17,7 +17,7 @@ def main():
         "--checkinstall", action="store_true", help="Force checkinstall"
     )
     parser.add_argument("-v", "--verbose", action="store_true")
-    args, unknown_args = parser.parse_known_args()
+    args, unknown_args = parser.parse_known_args(args)
 
     makey(args.url_or_path, args.jobs, args.version, args.verbose, unknown_args, force_checkinstall=args.checkinstall)
 
