@@ -10,9 +10,6 @@ from plumbum import local, cmd, ProcessExecutionError
 
 logging.basicConfig(level=os.environ.get("MAKEY_LOGLEVEL", "WARNING"))
 
-logger = logging.getLogger(__name__)
-
-
 CMAKE_PROJECT_NAME_PATTERN = re.compile(r"project\((.*)\)", re.IGNORECASE)
 PACKAGE_NAME_PATTERN = re.compile(r"package: (.*?) generated")
 VERSION_STRING_PATTERN = re.compile(r"v(\d+)[\.-](\d+)[\.-](\d+)")
@@ -117,7 +114,7 @@ def makey(
     cmake_flags = cmake_flags or []
 
     # Parse file from URL or local tarball
-    logger.info(f"Loading source from {url_or_path}")
+    print(f"Loading source from {url_or_path}")
     project_path = load_source(url_or_path)
 
     # Place source inside the project directory
@@ -128,18 +125,18 @@ def makey(
 
     # Make package with CMAKE
     with local.cwd(build_path):
-        logger.info("Running CMake")
+        print("Running CMake")
         run_command(cmd.cmake[(source_path, *cmake_flags)], verbose)
 
-        logger.info("Running Make")
+        print("Running Make")
         run_command(cmd.make[f"-j{jobs}"], verbose)
 
         # Try CPack, otherwise use checkinstall
         if (local.cwd / "CPackConfig.cmake").exists() and not force_checkinstall:
-            logger.info("Installing with CPack")
+            print("Installing with CPack")
             deb_path = build_with_cpack(verbose=verbose)
         else:
-            logger.info("Installing with checkinstall")
+            print("Installing with checkinstall")
             # Find library name
             library_name = load_cmake_project_name(
                 (source_path / "CMakeLists.txt").read("utf8")
@@ -148,7 +145,7 @@ def makey(
                 with local.cwd(source_path):
                     try:
                         version = find_version_from_git()
-                        logger.info(f"Using version {version} from Git")
+                        print(f"Using version {version} from Git")
                     except ProcessExecutionError:
                         version = input(
                             "Could not load version from Git, please enter version string (major.minor.patch):"
@@ -156,7 +153,10 @@ def makey(
 
             deb_path = build_with_checkinstall(library_name, version, verbose=verbose)
 
+        print(f"Created deb file: {deb_path}")
+
         if install_package:
+            print("Installing deb file ...")
             run_command(cmd.sudo[cmd.apt["install", deb_path]], verbose)
 
     return deb_path
