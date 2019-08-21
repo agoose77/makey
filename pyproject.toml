@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "makey"
-version = "0.0.9"
+version = "0.0.10"
 description = "Make libraries from GIT/url/tarball with CMAKE, and install using checkinstall."
 license = "MIT"
 authors = ["Angus Hollands <goosey15@gmail.com>"]
