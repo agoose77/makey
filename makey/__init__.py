@@ -1,11 +1,13 @@
 import getpass
+import logging
+import os
 import re
 from contextlib import contextmanager
+from pathlib import Path
 from urllib.parse import urlparse, urlunparse
+from urllib.request import urlopen
 
 import plumbum
-import os
-import logging
 from plumbum import local, cmd, ProcessExecutionError
 
 logging.basicConfig(level=os.environ.get("MAKEY_LOGLEVEL", "WARNING"))
@@ -106,11 +108,24 @@ def run_command(command, verbose: bool):
         return command()
 
 
+def apply_patch(patch: str):
+    parsed_url = urlparse(patch)
+    if parsed_url.scheme in HTTP_SCHEMES:
+        response = urlopen(patch)
+        contents = response.read().decode()
+    else:
+        contents = Path(patch).read_text()
+
+    print("Applying patch")
+    cmd.git["apply", "-"] << contents
+
+
 def makey(
     url_or_path: str,
     jobs: int = 1,
     version: str = None,
     verbose: bool = False,
+    patch: str = None,
     cmake_args: list = None,
     dpkg_args: list = None,
     force_checkinstall: bool = False,
@@ -121,9 +136,16 @@ def makey(
     project_path = load_source(url_or_path)
 
     # Place source inside the project directory
-    source_path = project_path.move(local.cwd / f"{project_path.name}_source").move(project_path / "source")
+    source_path = project_path.move(local.cwd / f"{project_path.name}_source").move(
+        project_path / "source"
+    )
     build_path = project_path / "build"
     build_path.mkdir()
+
+    # Support patching files
+    if patch is not None:
+        with local.cwd(source_path):
+            apply_patch(patch)
 
     # Make package with CMAKE
     with local.cwd(build_path):

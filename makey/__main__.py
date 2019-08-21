@@ -20,6 +20,7 @@ def main(args=None):
     parser.add_argument(
         "-c", "--force_checkinstall", action="store_true", help="Force checkinstall."
     )
+    parser.add_argument("-p", "--patch", help="Apply patch to source.")
     parser.add_argument("-V", "--verbose", action="store_true", help="Turn on verbose mode.")
     parser.add_argument("-b", "--build_only", action="store_true", help="Only build package.")
     parser.add_argument("--cflag", action="append", nargs="+", help="CMake flags pass-through.", default=[])
@@ -33,6 +34,7 @@ def main(args=None):
         args.jobs,
         args.version,
         args.verbose,
+        patch=args.patch,
         cmake_args=make_arguments(sum(args.copt, []), sum(args.cflag, [])),
         dpkg_args=make_arguments(sum(args.dopt, []), sum(args.dflag, [])),
         force_checkinstall=args.force_checkinstall,
