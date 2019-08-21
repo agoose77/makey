@@ -4,11 +4,18 @@ from contextlib import contextmanager
 from urllib.parse import urlparse, urlunparse
 
 import plumbum
+import os
+import logging
 from plumbum import local, cmd, ProcessExecutionError
+
+logging.basicConfig(level=os.environ.get("MAKEY_LOGLEVEL", "WARNING"))
+
+logger = logging.getLogger(__name__)
+
 
 CMAKE_PROJECT_NAME_PATTERN = re.compile(r"project\((.*)\)", re.IGNORECASE)
 PACKAGE_NAME_PATTERN = re.compile(r"package: (.*?) generated")
-VERSION_STRING_PATTERN = re.compile(r"v(\d+[\.-]\d+[\.-]\d+)")
+VERSION_STRING_PATTERN = re.compile(r"v(\d+)[\.-](\d+)[\.-](\d+)")
 HTTP_SCHEMES = {"http", "https"}
 
 
@@ -64,21 +71,30 @@ def load_cmake_project_name(cmakelists_contents: str) -> str:
     return library_name_match.group(1).strip()
 
 
-def install_with_cpack(verbose: bool = False):
+def build_with_cpack(verbose: bool = False) -> plumbum.LocalPath:
     author = getpass.getuser()
     result = run_command(
-        cmd.sudo[cmd.cpack["-G", "DEB", "-D", f'CPACK_PACKAGE_CONTACT="{author}"']],
+        cmd.cpack["-G", "DEB", "-D", f'CPACK_PACKAGE_CONTACT="{author}"'],
         verbose,
     )
-    package_name = PACKAGE_NAME_PATTERN.search(result).group(1).strip()
-    run_command(cmd.sudo[cmd.apt["install", package_name]], verbose)
+    return local.cwd / PACKAGE_NAME_PATTERN.search(result).group(1).strip()
 
 
-def install_with_checkinstall(name: str, version: str, verbose: bool = False):
-    run_command(
-        cmd.sudo[cmd.checkinstall[f"--pkgname={name}", f"--pkgversion={version}"]],
-        verbose,
-    )
+def build_with_checkinstall(
+    name: str, version: str, verbose: bool = False
+) -> plumbum.LocalPath:
+    # Checkinstall returns filename on stderr, let's just use this approach
+    with track_new_files(local.cwd) as new_files:
+        run_command(
+            cmd.checkinstall[
+                f"--pkgname={name}",
+                f"--pkgversion={version}",
+                "--install=no",
+                "--fstrans=yes",
+            ],
+            verbose,
+        )
+    return next(p for p in new_files if p.suffix == ".deb")
 
 
 def run_command(command, verbose: bool):
@@ -96,10 +112,12 @@ def makey(
     verbose: bool = False,
     cmake_flags: list = None,
     force_checkinstall: bool = False,
+    install_package: bool = True,
 ):
     cmake_flags = cmake_flags or []
 
     # Parse file from URL or local tarball
+    logger.info(f"Loading source from {url_or_path}")
     project_path = load_source(url_or_path)
 
     # Place source inside the project directory
@@ -110,18 +128,18 @@ def makey(
 
     # Make package with CMAKE
     with local.cwd(build_path):
-        print("Running CMake")
+        logger.info("Running CMake")
         run_command(cmd.cmake[(source_path, *cmake_flags)], verbose)
 
-        print("Running Make")
+        logger.info("Running Make")
         run_command(cmd.make[f"-j{jobs}"], verbose)
 
         # Try CPack, otherwise use checkinstall
         if (local.cwd / "CPackConfig.cmake").exists() and not force_checkinstall:
-            print("Installing with CPack")
-            install_with_cpack(verbose=verbose)
+            logger.info("Installing with CPack")
+            deb_path = build_with_cpack(verbose=verbose)
         else:
-            print("Installing with checkinstall")
+            logger.info("Installing with checkinstall")
             # Find library name
             library_name = load_cmake_project_name(
                 (source_path / "CMakeLists.txt").read("utf8")
@@ -130,11 +148,15 @@ def makey(
                 with local.cwd(source_path):
                     try:
                         version = find_version_from_git()
-                        print(f"Using version {version} from Git")
+                        logger.info(f"Using version {version} from Git")
                     except ProcessExecutionError:
                         version = input(
                             "Could not load version from Git, please enter version string (major.minor.patch):"
                         )
 
-            install_with_checkinstall(library_name, version, verbose=verbose)
-    print("Done!")
+            deb_path = build_with_checkinstall(library_name, version, verbose=verbose)
+
+        if install_package:
+            run_command(cmd.sudo[cmd.apt["install", deb_path]], verbose)
+
+    return deb_path
