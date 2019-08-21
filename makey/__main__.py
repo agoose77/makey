@@ -12,11 +12,11 @@ def main(args=None):
     parser.add_argument(
         "-j", "--jobs", type=str, help="Number of jobs for make command.", default=1
     )
-    parser.add_argument("--version", type=str, help="Project version.")
+    parser.add_argument("-v", "--version", type=str, help="Project version.")
     parser.add_argument(
-        "--checkinstall", action="store_true", help="Force checkinstall."
+        "-c", "--force_checkinstall", action="store_true", help="Force checkinstall."
     )
-    parser.add_argument("-v", "--verbose", action="store_true", help="Turn on verbose mode.")
+    parser.add_argument("-V", "--verbose", action="store_true", help="Turn on verbose mode.")
     parser.add_argument("-b", "--build_only", action="store_true", help="Only build package.")
     args, unknown_args = parser.parse_known_args(args)
 
@@ -26,7 +26,7 @@ def main(args=None):
         args.version,
         args.verbose,
         unknown_args,
-        force_checkinstall=args.checkinstall,
+        force_checkinstall=args.force_checkinstall,
         install_package=not args.build_only,
     )
 
