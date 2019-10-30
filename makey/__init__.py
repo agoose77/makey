@@ -181,6 +181,6 @@ def makey(
 
         if install_package:
             print("Installing deb file ...")
-            run_command(cmd.sudo[cmd.dpkg[(*dpkg_args, "-i", deb_path)]], verbose)
+            run_command(cmd.sudo[cmd.dpkg][(*dpkg_args, "-i", deb_path)], verbose)
 
     return deb_path
